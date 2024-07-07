@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include "WindowsMessageMap.h"
 
 // Windows is all about two things:
 // Windows + Messages
@@ -24,6 +25,44 @@
 // You may wish to use CALLBACK for the callback 
 // functions that you implement to help identify the function as a callback function.
 
+
+
+LRESULT CALLBACK WndProc(
+	HWND hWnd,
+	UINT message,
+	WPARAM wParam,
+	LPARAM lParam
+)
+{
+	static WindowsMessageMap mm;
+	OutputDebugStringA(mm(message, lParam, wParam).c_str());
+
+	switch (message)
+	{
+		case WM_CLOSE: 
+			PostQuitMessage(101);
+			break;
+		case WM_KEYDOWN:
+			if (wParam == 'F')
+			{
+				SetWindowText(hWnd, L"TitleChange");
+			}
+			break;
+		case WM_KEYUP:
+			if (wParam == 'F')
+			{
+				SetWindowText(hWnd, L"TitleRelease");
+			}
+			break;
+		case WM_CHAR:
+
+			break;
+	}
+
+	return DefWindowProc(hWnd, message, wParam, lParam);
+}
+
+
 int CALLBACK WinMain(			// OS doesn't use return value, but you can pass it to another program
 	HINSTANCE	hInstance,		// OS uses this to indentify EXE when it's loaded into memoty, and certain Win functions (i.e for bitmaps or icons)
 	HINSTANCE	hPrevInstance,	// has no meaning, it was used in 16-bit windows
@@ -36,7 +75,7 @@ int CALLBACK WinMain(			// OS doesn't use return value, but you can pass it to a
 	WNDCLASSEX wc = { 0 };
 	wc.cbSize = sizeof(wc);
 	wc.style = CS_OWNDC;
-	wc.lpfnWndProc = DefWindowProc;
+	wc.lpfnWndProc = WndProc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
 	wc.hInstance = hInstance;
@@ -65,7 +104,25 @@ int CALLBACK WinMain(			// OS doesn't use return value, but you can pass it to a
 	// 3. Show the Window
 	ShowWindow(hWnd, SW_SHOW);
 
-	while (true);
 
-	return 0;
+	// Message Pump
+	// GetMessage - gets message from Win32 Queue for our window
+	MSG message;
+	BOOL gResult;
+	while (gResult = GetMessage(&message, nullptr, 0, 0) > 0)
+	{
+		TranslateMessage(&message);
+		// Send message back to Win32 for it to handle
+		// Win32 will send it to our WndProc (where WndProc will handle it with DefWndProc)
+		DispatchMessage(&message);
+	}
+
+	if (gResult == -1)
+	{
+		return -1;
+	}
+	else
+	{
+		return message.wParam;
+	}
 }
